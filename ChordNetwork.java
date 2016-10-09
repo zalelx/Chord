@@ -1,5 +1,7 @@
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Hashtable;
+import java.util.Map;
 
 import static java.lang.Math.pow;
 
@@ -8,13 +10,10 @@ public class ChordNetwork {
     private int bits;
     ChordNode firstNode;
 
-    private ArrayList<ChordNode> nodes = new ArrayList<>();
+    private Map<Integer, ChordNode> nodes = new Hashtable<>();
 
     private ChordNetwork(int bits, int id) {
         this.bits = bits;
-        for (int i = 0; i < (int) pow(2, bits); i++) {
-            nodes.add(null);
-        }
         addNode(id);
         firstNode = get(id);
     }
@@ -25,7 +24,7 @@ public class ChordNetwork {
 
     private void addNode(int id) {
         ChordNode newNode = new ChordNode(id);
-        nodes.set(id, newNode);
+        nodes.put(id, newNode);
         if (firstNode != null && firstNode.predecessor.id == firstNode.id && firstNode.successor().id == firstNode.id) {
             for (int i = 0; i < bits; i++) {
                 newNode.finger.get(i).node = firstNode;
@@ -42,7 +41,7 @@ public class ChordNetwork {
         toRemove.predecessor.setSuccessor(toRemove.successor());
         toRemove.successor().predecessor = toRemove.predecessor;
 
-        nodes.set(id, null);
+        nodes.put(id, null);
         toRemove.updateOthers();
     }
 
@@ -54,7 +53,7 @@ public class ChordNetwork {
         idsToCreate.forEach(this::addNode);
     }
 
-    ChordNode get(int id) {
+    private ChordNode get(int id) {
         return nodes.get(id);
     }
 
@@ -136,11 +135,13 @@ public class ChordNetwork {
         void updateOthers() {
             for (int i = 1; i <= bits; i++) {
                 ChordNode p = findPredecessor((this.id - (int) pow(2, i - 1)) % (int) pow(2, bits));
-                p.updateFingerTable(this.id, i-1);
+                if (!p.equals(this)) {
+                    p.updateFingerTable(this.id, i - 1);
+                }
             }
         }
 
-        private void updateFingerTable(int id, int i) {
+        private void updateFingerTable(int id, int i) { // if id is i'th finger of this node
             if (
                     (this.id >= finger.get(i).node.id && (id < finger.get(i).node.id ^ this.id <= id))
                             || (this.id < finger.get(i).node.id && id < finger.get(i).node.id && this.id <= id)) {
@@ -188,7 +189,7 @@ public class ChordNetwork {
 
     public static void main(String[] args) {
         int bits = 4;
-        int[] ids = {6};
+        int[] ids = {6, 9};
         int firstId = 3;
         ArrayList<Integer> e = new ArrayList<>(ids.length);
         for (int id : ids) {
