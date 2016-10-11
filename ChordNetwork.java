@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Map;
+import java.util.Random;
 
 import static java.lang.Math.pow;
 
@@ -35,13 +36,21 @@ public class ChordNetwork {
         newNode.join(firstNode);
     }
 
-    void removeNode(int id) {
+    private void removeNode(int id) {
         ChordNode toRemove = get(id);
-        toRemove.predecessor.setSuccessor(toRemove.successor());
-        toRemove.successor().predecessor = toRemove.predecessor;
-
-        nodes.put(id, null);
-        toRemove.updateOthers();
+        nodes.remove(id);
+        if (firstNode.equals(toRemove)) {
+            if (nodes.keySet().size() == 0) {
+                firstNode = null;
+            } else {
+                firstNode = nodes.get(new Random().nextInt(nodes.keySet().size()));
+            }
+        }
+        ChordNode pred = toRemove.predecessor;
+        ChordNode succ = toRemove.successor();
+        pred.setSuccessor(toRemove.successor());
+        succ.predecessor = toRemove.predecessor;
+        toRemove.leaveUpdateOthers();
     }
 
     void stabilization() {
@@ -130,16 +139,25 @@ public class ChordNetwork {
             }
         }
 
-        void updateOthers() {
+        void joinUpdateOthers() {
             for (int i = 1; i <= bits; i++) {
                 int index = this.id - (int) pow(2, i - 1);
                 index = (index >= 0) ? index : index + (int) pow(2, bits);
                 ChordNode p = (get(index) != null) ? get(index) : findPredecessor(index); // если существует узел с id == index, то использовать его
-                p.updateFingerTable(this.id, i - 1);
+                p.joinUpdateFingerTable(this.id, i - 1);
             }
         }
 
-        private void updateFingerTable(int id, int i) { // if id is i'th finger of this node
+        void leaveUpdateOthers() {
+            for (int i = 1; i <= bits; i++) {
+                int index = this.id - (int) pow(2, i - 1);
+                index = (index >= 0) ? index : index + (int) pow(2, bits);
+                ChordNode p = (get(index) != null) ? get(index) : findPredecessor(index); // если существует узел с id == index, то использовать его
+                p.leaveUpdateFingerTable(this.id, i - 1);
+            }
+        }
+
+        private void joinUpdateFingerTable(int id, int i) { // if id is i'th finger of this node
             FingerTableEntry entry = finger.get(i);
             int start = (this.id == id) ? this.id : entry.start;
             int finish = entry.node.id;
@@ -148,15 +166,28 @@ public class ChordNetwork {
                 if (this.id != id) {
                     entry.node = get(id);
                 }
-                    predecessor.updateFingerTable(id, i);
+                predecessor.joinUpdateFingerTable(id, i);
             }
-
         }
+
+        private void leaveUpdateFingerTable(int id, int i) {
+            FingerTableEntry entry = finger.get(i);
+            int start = (this.id == id) ? this.id : entry.start;
+            int finish = entry.node.id;
+            if ((start > finish && (id < finish ^ start <= id))
+                    || (start <= finish && id < finish && start <= id)) {
+                if (this.id != id) {
+                    entry.node = findSuccessor(id);
+                }
+                predecessor.leaveUpdateFingerTable(id, i);
+            }
+        }
+
 
         void join(ChordNode chordNode) {
             if (chordNode != null) {
                 initFingerTable(chordNode);
-                updateOthers();
+                joinUpdateOthers();
             } else {
                 for (int i = 0; i < bits; i++) {
                     finger.get(i).node = this;
@@ -198,10 +229,9 @@ public class ChordNetwork {
         for (int id : ids) {
             e.add(id);
         }
-//        Collections.sort(e);
         ChordNetwork net = new ChordNetwork(bits, firstId);
         net.addNodes(e);
+        net.removeNode(1);
         System.out.println(net);
-//        net.removeNode(3);
     }
 }
