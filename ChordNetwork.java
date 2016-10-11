@@ -1,5 +1,4 @@
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Hashtable;
 import java.util.Map;
 
@@ -81,6 +80,7 @@ public class ChordNetwork {
         public String toString() {
             return "ChordNode{" +
                     "id=" + id +
+                    ", finger=" + finger +
                     '}';
         }
 
@@ -132,26 +132,25 @@ public class ChordNetwork {
 
         void updateOthers() {
             for (int i = 1; i <= bits; i++) {
-                ChordNode p = findPredecessor((this.id - (int) pow(2, i - 1)) % (int) pow(2, bits));
-                if (!p.equals(this)) {
-                    p.updateFingerTable(this.id, i - 1);
-                }
+                int index = this.id - (int) pow(2, i - 1);
+                index = (index >= 0) ? index : index + (int) pow(2, bits);
+                ChordNode p = (get(index) != null) ? get(index) : findPredecessor(index); // если существует узел с id == index, то использовать его
+                p.updateFingerTable(this.id, i - 1);
             }
         }
 
         private void updateFingerTable(int id, int i) { // if id is i'th finger of this node
             FingerTableEntry entry = finger.get(i);
-            if ((this.id >= entry.node.id && (id < entry.node.id ^ this.id <= id))
-                    || (this.id < entry.node.id && id < entry.node.id && this.id <= id)) {
-                entry.node = get(id);
-                predecessor.updateFingerTable(id, i);
-            } else {
-                if (!((entry.start < entry.end && entry.start < entry.node.id && entry.node.id < entry.end) // if old node not in i'th finger
-                        || (entry.start >= entry.end && (entry.start < entry.node.id ^ entry.node.id < entry.end)))) {
+            int start = (this.id == id) ? this.id : entry.start;
+            int finish = entry.node.id;
+            if ((start > finish && (id < finish ^ start <= id))
+                    || (start <= finish && id < finish && start <= id)) {
+                if (this.id != id) {
                     entry.node = get(id);
-//                    predecessor.updateFingerTable(id, i);
                 }
+                    predecessor.updateFingerTable(id, i);
             }
+
         }
 
         void join(ChordNode chordNode) {
@@ -185,21 +184,21 @@ public class ChordNetwork {
                 return "FingerTableEntry{" +
                         "start=" + start +
                         ", end=" + end +
-                        ", node=" + node +
+                        ", node=" + node.id +
                         '}';
             }
         }
     }
 
     public static void main(String[] args) {
-        int bits = 4;
-        int[] ids = {6, 9};
-        int firstId = 3;
+        int bits = 3;
+        int[] ids = {3, 6, 1};
+        int firstId = 0;
         ArrayList<Integer> e = new ArrayList<>(ids.length);
         for (int id : ids) {
             e.add(id);
         }
-        Collections.sort(e);
+//        Collections.sort(e);
         ChordNetwork net = new ChordNetwork(bits, firstId);
         net.addNodes(e);
         System.out.println(net);
