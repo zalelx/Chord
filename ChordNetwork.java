@@ -67,9 +67,13 @@ public class ChordNetwork {
 
     @Override
     public String toString() {
-        return "ChordNetwork{" +
-                "nodes=" + nodes +
-                '}';
+        StringBuffer res = new StringBuffer();
+        for (Integer i: nodes.keySet()
+             ) {
+            res.append(nodes.get(i).toString() + '\n');
+        }
+
+        return res.toString();
     }
 
     private class ChordNode {
@@ -106,9 +110,11 @@ public class ChordNetwork {
         }
 
         ChordNode closestPrecedingFinger(int id) {
-            for (int i = bits - 1; i > 0; i--) {
-                if ((this.id >= id && (this.id < finger.get(i).node.id ^ finger.get(i).node.id < id))
-                        || this.id < id && finger.get(i).node.id > this.id && finger.get(i).node.id < id) {
+            for (int i = bits - 1; i >= 0; i--) {
+                int start = this.id;
+                int finish = id;
+                if ((start >= finish && (start < finger.get(i).node.id ^ finger.get(i).node.id < finish))
+                        || start < finish && finger.get(i).node.id > start && finger.get(i).node.id < finish) {
                     return finger.get(i).node;
                 }
             }
@@ -222,7 +228,7 @@ public class ChordNetwork {
     }
 
     public static void main(String[] args) {
-        int bits = 3;
+        int bits = 10;
         int[] ids = {3, 6, 1};
         int firstId = 0;
         ArrayList<Integer> e = new ArrayList<>(ids.length);
@@ -231,6 +237,11 @@ public class ChordNetwork {
         }
         ChordNetwork net = new ChordNetwork(bits, firstId);
         net.addNodes(e);
+
+        net.addNode(999);
+        net.addNode(700);
+        net.addNode(300);
+        System.out.println(net.findById(2));
         net.removeNode(1);
         System.out.println(net);
     }
